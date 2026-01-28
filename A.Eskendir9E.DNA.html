@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Модель ДНК</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        .legend {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            max-width: 320px;
+        }
+        .legend h3 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        .color-box {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+            border-radius: 4px;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .bottom-text {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 13px;
+        }
+        .controls p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="legend">
+        <h3>Обозначения</h3>
+        <div class="legend-item">
+            <div class="color-box" style="background: #ff0000;"></div>
+            <span>Аденин (A)</span>
+        </div>
+        <div class="legend-item">
+            <div class="color-box" style="background: #00ff00;"></div>
+            <span>Тимин (T)</span>
+        </div>
+        <div class="legend-item">
+            <div class="color-box" style="background: #0066ff;"></div>
+            <span>Цитозин (C)</span>
+        </div>
+        <div class="legend-item">
+            <div class="color-box" style="background: #ffff00;"></div>
+            <span>Гуанин (G)</span>
+        </div>
+        <div class="legend-item">
+            <div class="color-box" style="background: #ff6600;"></div>
+            <span>Сахарофосфатный остов</span>
+        </div>
+        <div class="legend-item">
+            <div class="color-box" style="background: #aaaaaa;"></div>
+            <span>Водородные связи</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <p><strong>Управление:</strong></p>
+        <p>🖱️ Мышь - поворот камеры</p>
+        <p>🔄 Колесико - приближение</p>
+    </div>
+
+    <div class="bottom-text">Двойная спираль ДНК - 3D модель</div>
+
+    <div style="position: absolute; top: 50%; right: 50px; transform: translateY(-50%); color: white; background: rgba(0, 0, 0, 0.7); padding: 15px; border-radius: 10px; font-size: 16px; font-weight: bold;">
+        <div style="margin-bottom: 80px; text-align: center;">
+            <div style="color: #ff6600; font-size: 20px;">5'</div>
+            <div style="font-size: 12px; margin-top: 5px;">Первая цепь</div>
+        </div>
+        <div style="text-align: center;">
+            <div style="color: #ff6600; font-size: 20px;">3'</div>
+            <div style="font-size: 12px; margin-top: 5px;">Первая цепь</div>
+        </div>
+    </div>
+
+    <div style="position: absolute; top: 50%; left: 50px; transform: translateY(-50%); color: white; background: rgba(0, 0, 0, 0.7); padding: 15px; border-radius: 10px; font-size: 16px; font-weight: bold;">
+        <div style="margin-bottom: 80px; text-align: center;">
+            <div style="color: #ff6600; font-size: 20px;">3'</div>
+            <div style="font-size: 12px; margin-top: 5px;">Вторая цепь</div>
+        </div>
+        <div style="text-align: center;">
+            <div style="color: #ff6600; font-size: 20px;">5'</div>
+            <div style="font-size: 12px; margin-top: 5px;">Вторая цепь</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Scene setup
+        const scene = new THREE.Scene();
+        
+        // Create gradient background
+        const canvas = document.createElement('canvas');
+        canvas.width = 2;
+        canvas.height = 256;
+        const context = canvas.getContext('2d');
+        const gradient = context.createLinearGradient(0, 0, 0, 256);
+        gradient.addColorStop(0, '#0a0e27');
+        gradient.addColorStop(0.5, '#1a1a3e');
+        gradient.addColorStop(1, '#2d1b4e');
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, 2, 256);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        scene.background = texture;
+        
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.z = 25;
+        camera.position.y = 5;
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        
+        const pointLight1 = new THREE.PointLight(0xffffff, 1);
+        pointLight1.position.set(20, 20, 20);
+        scene.add(pointLight1);
+        
+        const pointLight2 = new THREE.PointLight(0x4ecdc4, 0.6);
+        pointLight2.position.set(-20, -20, -20);
+        scene.add(pointLight2);
+
+        // DNA parameters
+        const backboneRadius = 2.5;      // Radius where backbone runs
+        const baseInset = 1.2;           // How far bases extend inward from backbone
+        const helixHeight = 40;
+        const turns = 4;
+        const basePairsPerTurn = 10;
+        const totalBasePairs = Math.floor(turns * basePairsPerTurn);
+
+        // Colors
+        const colors = {
+            adenine: 0xff0000,
+            thymine: 0x00ff00,
+            cytosine: 0x0066ff,
+            guanine: 0xffff00,
+            backbone: 0xff6600,
+            bond: 0xaaaaaa
+        };
+
+        // Base pairs
+        const basePairs = [];
+        const baseTypes = ['A', 'T', 'C', 'G'];
+        const complement = { 'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C' };
+
+        for (let i = 0; i < totalBasePairs; i++) {
+            const base1 = baseTypes[Math.floor(Math.random() * baseTypes.length)];
+            const base2 = complement[base1];
+            basePairs.push([base1, base2]);
+        }
+
+        const dnaGroup = new THREE.Group();
+
+        function getBaseColor(base) {
+            switch(base) {
+                case 'A': return colors.adenine;
+                case 'T': return colors.thymine;
+                case 'C': return colors.cytosine;
+                case 'G': return colors.guanine;
+            }
+        }
+
+        // Store backbone positions
+        const backbonePositions1 = [];
+        const backbonePositions2 = [];
+
+        // Create DNA structure
+        for (let i = 0; i < totalBasePairs; i++) {
+            const t = i / totalBasePairs;
+            const angle = t * turns * Math.PI * 2;
+            const y = (t - 0.5) * helixHeight;
+
+            // Backbone positions (outer helix)
+            const backboneX1 = Math.cos(angle) * backboneRadius;
+            const backboneZ1 = Math.sin(angle) * backboneRadius;
+            
+            const backboneX2 = Math.cos(angle + Math.PI) * backboneRadius;
+            const backboneZ2 = Math.sin(angle + Math.PI) * backboneRadius;
+
+            // Store backbone positions
+            backbonePositions1.push(new THREE.Vector3(backboneX1, y, backboneZ1));
+            backbonePositions2.push(new THREE.Vector3(backboneX2, y, backboneZ2));
+
+            // Base positions (closer to center, attached to backbone)
+            const baseX1 = Math.cos(angle) * (backboneRadius - baseInset);
+            const baseZ1 = Math.sin(angle) * (backboneRadius - baseInset);
+            
+            const baseX2 = Math.cos(angle + Math.PI) * (backboneRadius - baseInset);
+            const baseZ2 = Math.sin(angle + Math.PI) * (backboneRadius - baseInset);
+
+            // Create nitrogenous bases (spheres)
+            const baseGeometry = new THREE.SphereGeometry(0.4, 20, 20);
+            
+            // First base
+            const base1Material = new THREE.MeshPhongMaterial({ 
+                color: getBaseColor(basePairs[i][0]),
+                shininess: 80,
+                specular: 0x444444,
+                emissive: getBaseColor(basePairs[i][0]),
+                emissiveIntensity: 0.2
+            });
+            const base1 = new THREE.Mesh(baseGeometry, base1Material);
+            base1.position.set(baseX1, y, baseZ1);
+            dnaGroup.add(base1);
+
+            // Second base
+            const base2Material = new THREE.MeshPhongMaterial({ 
+                color: getBaseColor(basePairs[i][1]),
+                shininess: 80,
+                specular: 0x444444,
+                emissive: getBaseColor(basePairs[i][1]),
+                emissiveIntensity: 0.2
+            });
+            const base2 = new THREE.Mesh(baseGeometry, base2Material);
+            base2.position.set(baseX2, y, baseZ2);
+            dnaGroup.add(base2);
+
+            // Connector from backbone to base (showing base is attached to backbone)
+            const connectorGeometry1 = new THREE.CylinderGeometry(0.08, 0.08, baseInset, 8);
+            const connectorMaterial = new THREE.MeshPhongMaterial({ 
+                color: colors.backbone,
+                shininess: 60
+            });
+            
+            const connector1 = new THREE.Mesh(connectorGeometry1, connectorMaterial);
+            connector1.position.set(
+                (backboneX1 + baseX1) / 2,
+                y,
+                (backboneZ1 + baseZ1) / 2
+            );
+            const direction1 = new THREE.Vector3(baseX1 - backboneX1, 0, baseZ1 - backboneZ1);
+            connector1.quaternion.setFromUnitVectors(
+                new THREE.Vector3(0, 1, 0),
+                direction1.normalize()
+            );
+            dnaGroup.add(connector1);
+
+            const connector2 = new THREE.Mesh(connectorGeometry1, connectorMaterial);
+            connector2.position.set(
+                (backboneX2 + baseX2) / 2,
+                y,
+                (backboneZ2 + baseZ2) / 2
+            );
+            const direction2 = new THREE.Vector3(baseX2 - backboneX2, 0, baseZ2 - backboneZ2);
+            connector2.quaternion.setFromUnitVectors(
+                new THREE.Vector3(0, 1, 0),
+                direction2.normalize()
+            );
+            dnaGroup.add(connector2);
+
+            // Hydrogen bonds between base pairs
+            const distance = Math.sqrt((baseX2-baseX1)**2 + (baseZ2-baseZ1)**2);
+            const bondGeometry = new THREE.CylinderGeometry(0.05, 0.05, distance, 8);
+            const bondMaterial = new THREE.MeshPhongMaterial({ 
+                color: colors.bond,
+                transparent: true,
+                opacity: 0.6,
+                shininess: 30
+            });
+            const bond = new THREE.Mesh(bondGeometry, bondMaterial);
+            
+            bond.position.set((baseX1 + baseX2) / 2, y, (baseZ1 + baseZ2) / 2);
+            bond.rotation.z = Math.PI / 2;
+            bond.rotation.y = -angle;
+            dnaGroup.add(bond);
+        }
+
+        // Create smooth backbone tubes
+        const backboneMaterial = new THREE.MeshPhongMaterial({ 
+            color: colors.backbone,
+            shininess: 60,
+            specular: 0x333333
+        });
+
+        // First strand backbone
+        for (let i = 0; i < backbonePositions1.length - 1; i++) {
+            const start = backbonePositions1[i];
+            const end = backbonePositions1[i + 1];
+            
+            const backboneLength = start.distanceTo(end);
+            const backboneGeometry = new THREE.CylinderGeometry(0.18, 0.18, backboneLength, 12);
+            const backbone = new THREE.Mesh(backboneGeometry, backboneMaterial);
+            
+            backbone.position.set(
+                (start.x + end.x) / 2,
+                (start.y + end.y) / 2,
+                (start.z + end.z) / 2
+            );
+            
+            const direction = new THREE.Vector3().subVectors(end, start);
+            backbone.quaternion.setFromUnitVectors(
+                new THREE.Vector3(0, 1, 0),
+                direction.normalize()
+            );
+            
+            dnaGroup.add(backbone);
+        }
+
+        // Second strand backbone
+        for (let i = 0; i < backbonePositions2.length - 1; i++) {
+            const start = backbonePositions2[i];
+            const end = backbonePositions2[i + 1];
+            
+            const backboneLength = start.distanceTo(end);
+            const backboneGeometry = new THREE.CylinderGeometry(0.18, 0.18, backboneLength, 12);
+            const backbone = new THREE.Mesh(backboneGeometry, backboneMaterial);
+            
+            backbone.position.set(
+                (start.x + end.x) / 2,
+                (start.y + end.y) / 2,
+                (start.z + end.z) / 2
+            );
+            
+            const direction = new THREE.Vector3().subVectors(end, start);
+            backbone.quaternion.setFromUnitVectors(
+                new THREE.Vector3(0, 1, 0),
+                direction.normalize()
+            );
+            
+            dnaGroup.add(backbone);
+        }
+
+        // Add spheres at backbone joints
+        const jointGeometry = new THREE.SphereGeometry(0.18, 12, 12);
+        
+        backbonePositions1.forEach(pos => {
+            const joint = new THREE.Mesh(jointGeometry, backboneMaterial);
+            joint.position.copy(pos);
+            dnaGroup.add(joint);
+        });
+        
+        backbonePositions2.forEach(pos => {
+            const joint = new THREE.Mesh(jointGeometry, backboneMaterial);
+            joint.position.copy(pos);
+            dnaGroup.add(joint);
+        });
+
+        scene.add(dnaGroup);
+
+        // Add 3' and 5' labels as sprites on the DNA model
+        function createTextSprite(text, color) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 128;
+            
+            context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            
+            context.font = 'Bold 80px Arial';
+            context.fillStyle = color;
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(text, canvas.width / 2, canvas.height / 2);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(4, 2, 1);
+            
+            return sprite;
+        }
+
+        // First strand labels (5' at top, 3' at bottom)
+        const label5_strand1 = createTextSprite("5'", '#ff6600');
+        label5_strand1.position.set(
+            Math.cos(0) * backboneRadius,
+            helixHeight / 2 + 2,
+            Math.sin(0) * backboneRadius
+        );
+        dnaGroup.add(label5_strand1);
+
+        const label3_strand1 = createTextSprite("3'", '#ff6600');
+        label3_strand1.position.set(
+            Math.cos(turns * Math.PI * 2) * backboneRadius,
+            -helixHeight / 2 - 2,
+            Math.sin(turns * Math.PI * 2) * backboneRadius
+        );
+        dnaGroup.add(label3_strand1);
+
+        // Second strand labels (3' at top, 5' at bottom) - antiparallel
+        const label3_strand2 = createTextSprite("3'", '#ff6600');
+        label3_strand2.position.set(
+            Math.cos(Math.PI) * backboneRadius,
+            helixHeight / 2 + 2,
+            Math.sin(Math.PI) * backboneRadius
+        );
+        dnaGroup.add(label3_strand2);
+
+        const label5_strand2 = createTextSprite("5'", '#ff6600');
+        label5_strand2.position.set(
+            Math.cos(turns * Math.PI * 2 + Math.PI) * backboneRadius,
+            -helixHeight / 2 - 2,
+            Math.sin(turns * Math.PI * 2 + Math.PI) * backboneRadius
+        );
+        dnaGroup.add(label5_strand2);
+
+        // Add stars
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsMaterial = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 0.2,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        const starsVertices = [];
+        for (let i = 0; i < 1500; i++) {
+            const x = (Math.random() - 0.5) * 200;
+            const y = (Math.random() - 0.5) * 200;
+            const z = (Math.random() - 0.5) * 200;
+            starsVertices.push(x, y, z);
+        }
+
+        starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+        const stars = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(stars);
+
+        // Animation
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            time += 0.003;
+            dnaGroup.rotation.y = time;
+            
+            // Subtle vertical oscillation
+            dnaGroup.position.y = Math.sin(time * 0.8) * 0.3;
+            
+            // Slow stars rotation
+            stars.rotation.y = time * 0.03;
+            stars.rotation.x = time * 0.02;
+            
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Mouse interaction for camera
+        let mouseX = 0;
+        let mouseY = 0;
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            camera.position.x = mouseX * 8;
+            camera.position.y = 5 + mouseY * 8;
+            camera.lookAt(scene.position);
+        });
+
+        // Mouse wheel zoom
+        document.addEventListener('wheel', (event) => {
+            event.preventDefault();
+            const zoomSpeed = 0.1;
+            camera.position.z += event.deltaY * zoomSpeed * 0.01;
+            
+            // Limit zoom range
+            camera.position.z = Math.max(10, Math.min(60, camera.position.z));
+        }, { passive: false });
+
+        animate();
+    </script>
+</body>
+</html>
